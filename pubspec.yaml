@@ -41,6 +41,8 @@ dependencies:
       url: https://github.com/DevOrbiter/drag_and_drop_gridview.git
       ref: master
 
+  reorderable_grid_view: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
