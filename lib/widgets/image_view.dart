@@ -1,8 +1,8 @@
 import 'dart:io' show File;
-import 'package:drag_and_drop_gridview/devdrag.dart';
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 
 class ImageView extends StatelessWidget {
   ImageView({Key? key, required this.images, required this.reorderHandler})
@@ -21,25 +21,27 @@ class ImageView extends StatelessWidget {
         border: Border.all(color: Colors.black),
         borderRadius: BorderRadius.circular(8.0),
       ),
-      child: SingleChildScrollView(
-          child: DragAndDropGridView(
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 300.0,
-          crossAxisSpacing: 10.0,
-          mainAxisSpacing: 0.0,
-        ),
+      child: Container(
+          child: ReorderableGridView.builder(
+        crossAxisCount: 3,
         itemCount: images.length,
         itemBuilder: (context, index) {
-          XFile image = images[index];
+          final XFile image = images[index];
           return _ImageTile(
-            imageName: image.name,
-            imagePath: image.path,
-          );
+              imageName: image.name,
+              imagePath: image.path,
+              key: ValueKey(index));
         },
-        onWillAccept: (oldIndex, newIndex) {
-          return true;
-        },
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 400.0,
+          mainAxisSpacing: 1.0,
+          crossAxisSpacing: 1.0,
+        ),
         onReorder: reorderHandler,
+        dragWidgetBuilder: (index, child) {
+          final image = images[index];
+          return _ImageTile(imageName: image.name, imagePath: image.path);
+        },
       )),
     );
   }
