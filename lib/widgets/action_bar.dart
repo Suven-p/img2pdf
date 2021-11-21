@@ -1,9 +1,13 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ActionBar extends StatelessWidget {
   const ActionBar({Key? key, required this.setImages, required this.getImages})
@@ -14,22 +18,31 @@ class ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 10),
+        margin: EdgeInsets.only(top: 10),
 //       constraints: BoxConstraints.expand(),
-      child: Column(children: [
-        Row(
-          children: [_options()],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            _clearAll(context),
-            AddImages(this.setImages),
-            GeneratePDF(),
-          ],
-        )
-      ]),
-    );
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          child: Column(children: [
+            Row(
+              children: [_options()],
+            ),
+            MainActionBar(
+              buttons: [
+                ActionButton(
+                    icon: Icon(Icons.clear_all),
+                    label: Text("Clear all"),
+                    onPressed: () => setImages([], append: false)),
+                ActionButton(
+                    onPressed: () async {
+                      await _generatePdf(getImages());
+                    },
+                    icon: Icon(Icons.picture_as_pdf),
+                    label: Text("Generate PDF")),
+                AddImages(setImages),
+              ],
+            )
+          ]),
+        ));
   }
 
   Widget _options() {
@@ -42,33 +55,114 @@ class ActionBar extends StatelessWidget {
         });
   }
 
-  Widget _clearAll(BuildContext context) {
-    return Container(
-        margin: EdgeInsets.only(left: 15),
-        child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.all(20),
-            ),
-            onPressed: () => setImages([], append: false),
-            icon: Icon(Icons.clear_all),
-            label: Text("Clear all")));
+  Future<void> _generatePdf(List<XFile> images) async {
+    final doc = pw.Document();
+    for (var image in images) {
+      doc.addPage(pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Center(
+                child: pw.Image(
+              pw.MemoryImage(File(image.path).readAsBytesSync()),
+              fit: pw.BoxFit.fitWidth,
+            ));
+          }));
+    }
+    final fileData = await doc.save();
+    String? filePath;
+    if (kIsWeb) {
+      filePath = await _getSavePath();
+    } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      filePath = await _getSavePath();
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      filePath = await _getSavePathMobile();
+    } else {
+      throw Exception("Unsupported platform ${Platform.operatingSystem}");
+    }
+    if (filePath == null) return;
+    final file = File(filePath);
+    await file.writeAsBytes(fileData);
+  }
+
+  Future<String?> _getSavePath() async {
+    final List<XTypeGroup> acceptedGroups = [
+      XTypeGroup(mimeTypes: ["application/pdf"], webWildCards: ["pdf"]),
+      XTypeGroup(mimeTypes: ["*"], webWildCards: ["*"]),
+    ];
+    return await getSavePath(
+      acceptedTypeGroups: acceptedGroups,
+    );
+  }
+
+  Future<String?> _getSavePathMobile() async {
+    // storage permission ask
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
+    }
+    String fileName = "Output_file.pdf";
+    // the downloads folder path
+    if (Platform.isAndroid) {
+      final path = await getExternalStorageDirectory();
+      if (path == null) return null;
+      return path.path + "/" + fileName;
+    } else if (Platform.isIOS) {
+      final path = await getApplicationSupportDirectory();
+      return path.path + "/" + fileName;
+    }
   }
 }
 
-class GeneratePDF extends StatelessWidget {
-  const GeneratePDF({Key? key}) : super(key: key);
+class ActionButton extends StatelessWidget {
+  const ActionButton(
+      {Key? key,
+      required this.icon,
+      required this.label,
+      required this.onPressed})
+      : super(key: key);
+
+  final VoidCallback onPressed;
+  final Icon icon;
+  final Widget label;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        margin: EdgeInsets.only(left: 15),
-        child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.all(20),
+    return ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.all(15),
+        ),
+        onPressed: this.onPressed,
+        icon: this.icon,
+        label: this.label);
+  }
+}
+
+class MainActionBar extends StatelessWidget {
+  const MainActionBar({Key? key, required this.buttons}) : super(key: key);
+
+  final List<Widget> buttons;
+
+  @override
+  Widget build(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
+    final bool isScreenWide = size.width > 600;
+    final Axis direction = isScreenWide ? Axis.horizontal : Axis.vertical;
+    final double maxWidth =
+        isScreenWide ? size.width / buttons.length : size.width;
+    final double? width = isScreenWide ? null : size.width;
+    return Flex(
+      mainAxisAlignment: MainAxisAlignment.end,
+      direction: direction,
+      children: buttons.map((button) {
+        return Container(
+            margin: EdgeInsets.only(left: 5, bottom: 10),
+            width: width,
+            constraints: BoxConstraints(
+              maxWidth: maxWidth,
             ),
-            onPressed: () async {},
-            icon: Icon(Icons.picture_as_pdf),
-            label: Text("Generate PDF")));
+            child: button);
+      }).toList(),
+    );
   }
 }
 
@@ -79,6 +173,14 @@ class AddImages extends StatelessWidget {
   AddImages(
     this.setImageCallback,
   );
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionButton(
+        onPressed: () => _openImageFile()(context),
+        icon: Icon(Icons.add_a_photo),
+        label: Text("Add files"));
+  }
 
   Function _openImageFile() {
     if (kIsWeb) {
@@ -132,18 +234,5 @@ class AddImages extends StatelessWidget {
       return;
     }
     this.setImageCallback(files);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-        margin: EdgeInsets.only(left: 15),
-        child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.all(20),
-            ),
-            onPressed: () => _openImageFile()(context),
-            icon: Icon(Icons.add_a_photo),
-            label: Text("Add files")));
   }
 }

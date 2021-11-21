@@ -26,6 +26,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  // TODO: Replace image with image class to avoid generating at reorder callback
   List<XFile> images = [];
 
   @override

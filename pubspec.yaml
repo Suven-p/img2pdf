@@ -34,12 +34,20 @@ dependencies:
   file_selector_macos: ^0.0.4+1
 
   file_picker: ^4.2.2+1
+  permission_handler: ^8.3.0
+  path_provider: ^2.0.7
+
   desktop_window: ^0.4.0
 
   reorderable_grid_view:
     git:
       url: https://github.com/huhuang03/reorderable_grid_view.git
       ref: master
+
+  pdf: ^3.6.2
+
+  flutter_dropzone: ^2.0.1
+  desktop_drop: ^0.1.2
 
 dev_dependencies:
   flutter_test:
