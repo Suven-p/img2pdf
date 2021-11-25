@@ -10,41 +10,19 @@ class ImageView extends StatelessWidget {
       {Key? key,
       required this.images,
       required this.reorderHandler,
-      required this.setImages})
+      required this.setImages,
+      required this.tapHandler})
       : super(key: key);
 
   final List<XFile> images;
   final Function(int, int) reorderHandler;
   final Function setImages;
+  final Function(ImageProvider provider) tapHandler;
 
   @override
   Widget build(BuildContext context) {
-    TextStyle text_style = TextStyle(fontSize: 18);
     if (images.isEmpty) {
-      return Container(
-        decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.black, width: 1),
-            borderRadius: BorderRadius.all(Radius.circular(10))),
-        constraints: BoxConstraints(minHeight: 200, minWidth: 100),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text(
-            'No images selected.',
-            style: text_style,
-          ),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            TextButton(
-              child: Text('Select images', style: text_style),
-              onPressed: () async {
-                List<XFile>? files = await openImageFile(context);
-                if (files == null) return;
-                setImages(files);
-              },
-            ),
-            Text('or drag and drop them.', style: text_style),
-          ]),
-        ]),
-      );
+      return defaultContainer(context);
     }
     return Container(
       constraints: BoxConstraints(
@@ -63,6 +41,7 @@ class ImageView extends StatelessWidget {
           return _ImageTile(
               imageName: image.name,
               imagePath: image.path,
+              tapHandler: tapHandler,
               key: ValueKey(index));
         },
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
@@ -85,10 +64,42 @@ class ImageView extends StatelessWidget {
       )),
     );
   }
+
+  Widget defaultContainer(BuildContext context) {
+    const text_style = TextStyle(fontSize: 18);
+    return Container(
+      decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black, width: 1),
+          borderRadius: BorderRadius.all(Radius.circular(10))),
+      constraints: BoxConstraints(minHeight: 200, minWidth: 100),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Text(
+          'No images selected.',
+          style: text_style,
+        ),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          TextButton(
+            child: Text('Select images', style: text_style),
+            onPressed: () async {
+              List<XFile>? files = await openImageFile(context);
+              if (files == null) return;
+              setImages(files);
+            },
+          ),
+          Text('or drag and drop them.', style: text_style),
+        ]),
+      ]),
+    );
+  }
 }
 
 class _ImageTile extends StatelessWidget {
-  _ImageTile({Key? key, required this.imageName, required this.imagePath})
+  _ImageTile(
+      {Key? key,
+      required this.imageName,
+      required this.imagePath,
+      required this.tapHandler})
       : provider = kIsWeb
             ? NetworkImage(imagePath)
             : FileImage(File(imagePath)) as ImageProvider<Object>,
@@ -97,27 +108,29 @@ class _ImageTile extends StatelessWidget {
   final String imageName;
   final String imagePath;
   final ImageProvider provider;
+  final Function(ImageProvider imageProvider) tapHandler;
 
   @override
   Widget build(BuildContext context) {
     // TODO: Implement tap gesture
-    return Container(
+    return GestureDetector(
+        onTap: () => tapHandler(this.provider),
         child: GridTile(
-      child: Container(
-        padding: EdgeInsets.only(bottom: 30),
-        child: Image(
-          image: provider,
-          fit: BoxFit.fill,
-          loadingBuilder: _loaderBuilder,
-        ),
-      ),
-      footer: Container(
-          margin: EdgeInsets.only(bottom: 10),
-          child: Text(
-            imageName,
-            textAlign: TextAlign.center,
-          )),
-    ));
+          child: Container(
+            padding: EdgeInsets.only(bottom: 30),
+            child: Image(
+              image: provider,
+              fit: BoxFit.fill,
+              loadingBuilder: _loaderBuilder,
+            ),
+          ),
+          footer: Container(
+              margin: EdgeInsets.only(bottom: 10),
+              child: Text(
+                imageName,
+                textAlign: TextAlign.center,
+              )),
+        ));
   }
 
   Widget _loaderBuilder(

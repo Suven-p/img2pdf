@@ -28,6 +28,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   // TODO: Replace image with image class to avoid generating at reorder callback
   List<XFile> images = [];
+  ImageProvider? displayedImage;
 
   @override
   void initState() {
@@ -48,21 +49,48 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pdf Generator'),
-      ),
-      body: Container(
-          padding: EdgeInsets.all(10),
-          child: SingleChildScrollView(
-              child: Column(children: [
-            ImageView(
-              images: images,
-              reorderHandler: reorderHandler,
-              setImages: setImage,
-            ),
-            ActionBar(setImages: setImage, getImages: () => images),
-          ]))),
-    );
+        appBar: AppBar(
+          title: const Text('Pdf Generator'),
+        ),
+        body: Stack(children: [
+          Container(
+              padding: EdgeInsets.all(10),
+              child: SingleChildScrollView(
+                  child: Column(children: [
+                ImageView(
+                  images: images,
+                  reorderHandler: reorderHandler,
+                  setImages: setImage,
+                  tapHandler: enlargeImage,
+                ),
+                ActionBar(setImages: setImage, getImages: () => images),
+              ]))),
+          (displayedImage != null)
+              ? image_overlay(displayedImage!)
+              : Container(),
+        ]));
+  }
+
+  Widget image_overlay(ImageProvider image) {
+    return GestureDetector(
+        onTap: () {
+          setState(() {
+            displayedImage = null;
+          });
+        },
+        child: Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Image(
+                image: image,
+              ),
+            )));
+  }
+
+  void enlargeImage(ImageProvider provider) {
+    setState(() {
+      displayedImage = provider;
+    });
   }
 
   void reorderHandler(oldIndex, newIndex) {
