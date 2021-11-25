@@ -67,7 +67,7 @@ class _MainScreenState extends State<MainScreen> {
               ]))),
           (displayedImage != null)
               ? image_overlay(displayedImage!)
-              : Container(),
+              : SizedBox.shrink(),
         ]));
   }
 
