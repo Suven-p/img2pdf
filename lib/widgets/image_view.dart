@@ -3,20 +3,48 @@ import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
+import '../utils/open_image.dart';
 
 class ImageView extends StatelessWidget {
-  ImageView({Key? key, required this.images, required this.reorderHandler})
+  ImageView(
+      {Key? key,
+      required this.images,
+      required this.reorderHandler,
+      required this.setImages})
       : super(key: key);
 
   final List<XFile> images;
   final Function(int, int) reorderHandler;
+  final Function setImages;
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Implement No image selected
-    // Without this android threw an error
+    TextStyle text_style = TextStyle(fontSize: 18);
     if (images.isEmpty) {
-      return Container();
+      return Container(
+        decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.black, width: 1),
+            borderRadius: BorderRadius.all(Radius.circular(10))),
+        constraints: BoxConstraints(minHeight: 200, minWidth: 100),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Text(
+            'No images selected.',
+            style: text_style,
+          ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            TextButton(
+              child: Text('Select images', style: text_style),
+              onPressed: () async {
+                List<XFile>? files = await openImageFile(context);
+                if (files == null) return;
+                setImages(files);
+              },
+            ),
+            Text('or drag and drop them.', style: text_style),
+          ]),
+        ]),
+      );
     }
     return Container(
       constraints: BoxConstraints(
