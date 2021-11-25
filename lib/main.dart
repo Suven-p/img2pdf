@@ -58,6 +58,7 @@ class _MainScreenState extends State<MainScreen> {
             ImageView(
               images: images,
               reorderHandler: reorderHandler,
+              setImages: setImage,
             ),
             ActionBar(setImages: setImage, getImages: () => images),
           ]))),
